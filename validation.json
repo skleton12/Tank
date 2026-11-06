@@ -1,0 +1,191 @@
+{
+  "mesh_objects": 2278,
+  "nominal_reference_dimensions_mm": {
+    "bare_hull_width": 2808,
+    "combat_track_width": 725,
+    "road_wheel_diameter": 800,
+    "turret_roof_height": 2625,
+    "axle_station_pitch": 515
+  },
+  "model_envelope_m": {
+    "length": 8.677,
+    "width": 3.705,
+    "height": 2.979
+  },
+  "scope": "Visual exterior only; no functional mechanisms or internal weapon construction; many small fittings interpreted.",
+  "revision": 2,
+  "checks": [
+    {
+      "label": "Driver plate inclination from vertical",
+      "actual": 8.999991941061564,
+      "reference": 9,
+      "unit": "deg",
+      "error": -8.058938435695495e-06,
+      "tolerance": 0.0001,
+      "passed": true,
+      "source": "German plate specifications, Jentz/Doyle"
+    },
+    {
+      "label": "Glacis inclination from vertical",
+      "actual": 79.99999734619439,
+      "reference": 80,
+      "unit": "deg",
+      "error": -2.6538056090430473e-06,
+      "tolerance": 0.0001,
+      "passed": true,
+      "source": "German plate specifications, Jentz/Doyle"
+    },
+    {
+      "label": "Nose inclination from vertical",
+      "actual": 25.000004085619967,
+      "reference": 25,
+      "unit": "deg",
+      "error": 4.085619966787135e-06,
+      "tolerance": 0.0001,
+      "passed": true,
+      "source": "German plate specifications, Jentz/Doyle"
+    },
+    {
+      "label": "Bare hull width",
+      "actual": 2808.000087738037,
+      "reference": 2808,
+      "unit": "mm",
+      "error": 8.7738037109375e-05,
+      "tolerance": 0.001,
+      "passed": true,
+      "source": "TIGER1.INFO Hull dimensions"
+    },
+    {
+      "label": "Turret underside clearance",
+      "actual": 9.999990463256836,
+      "reference": 10,
+      "unit": "mm",
+      "error": -9.5367431640625e-06,
+      "tolerance": 0.001,
+      "passed": true,
+      "source": "TIGER1.INFO Turret dimensions"
+    },
+    {
+      "label": "Turret front inclination",
+      "actual": 5.000006345067367,
+      "reference": 5,
+      "unit": "deg",
+      "error": 6.345067366630985e-06,
+      "tolerance": 0.0001,
+      "passed": true,
+      "source": "TIGER1.INFO Turret front plates"
+    },
+    {
+      "label": "Mantlet cylinder radius",
+      "actual": 390.0000122594148,
+      "reference": 390,
+      "unit": "mm",
+      "error": 1.2259414802429092e-05,
+      "tolerance": 0.001,
+      "passed": true,
+      "source": "TIGER1.INFO Mantlet protector"
+    },
+    {
+      "label": "Track -1 maximum pitch residual",
+      "actual": 0.0039300301610580846,
+      "reference": 0,
+      "unit": "mm",
+      "error": 0.0039300301610580846,
+      "tolerance": 0.01,
+      "passed": true,
+      "source": "Kgs 63/725/130 nominal link pitch"
+    },
+    {
+      "label": "Track -1 link count",
+      "actual": 96,
+      "reference": 96,
+      "unit": "count",
+      "error": 0,
+      "tolerance": 0,
+      "passed": true,
+      "source": "96-link reference configuration"
+    },
+    {
+      "label": "Track 1 maximum pitch residual",
+      "actual": 0.0039300301610580846,
+      "reference": 0,
+      "unit": "mm",
+      "error": 0.0039300301610580846,
+      "tolerance": 0.01,
+      "passed": true,
+      "source": "Kgs 63/725/130 nominal link pitch"
+    },
+    {
+      "label": "Track 1 link count",
+      "actual": 96,
+      "reference": 96,
+      "unit": "count",
+      "error": 0,
+      "tolerance": 0,
+      "passed": true,
+      "source": "96-link reference configuration"
+    },
+    {
+      "label": "Twin-tyre assemblies",
+      "actual": 8,
+      "reference": 8,
+      "unit": "count",
+      "error": 0,
+      "tolerance": 0,
+      "passed": true,
+      "source": "TIGER1.INFO Double wheel"
+    },
+    {
+      "label": "Tyres overall",
+      "actual": 48,
+      "reference": 48,
+      "unit": "count",
+      "error": 0,
+      "tolerance": 0,
+      "passed": true,
+      "source": "20 metal wheels / 24 tyres on each side"
+    },
+    {
+      "label": "Roadwheel diameter",
+      "actual": 1.9371509552001953e-05,
+      "reference": 0,
+      "unit": "mm",
+      "error": 1.9371509552001953e-05,
+      "tolerance": 0.001,
+      "passed": true,
+      "source": "TIGER1.INFO ExternalTyreWheels"
+    },
+    {
+      "label": "Track link width",
+      "actual": 2.384185791015625e-05,
+      "reference": 0,
+      "unit": "mm",
+      "error": 2.384185791015625e-05,
+      "tolerance": 0.001,
+      "passed": true,
+      "source": "TIGER1.INFO Hull dimensions"
+    },
+    {
+      "label": "Axle station spacing",
+      "actual": 1.1368683772161603e-13,
+      "reference": 0,
+      "unit": "mm",
+      "error": 1.1368683772161603e-13,
+      "tolerance": 0.001,
+      "passed": true,
+      "source": "TIGER1.INFO RoadWheelSpacing"
+    },
+    {
+      "label": "Overall envelope width",
+      "actual": 3705.0,
+      "reference": 3705,
+      "unit": "mm",
+      "error": 0.0,
+      "tolerance": 0.1,
+      "passed": true,
+      "source": "Combat track envelope target; fittings kept inside"
+    }
+  ],
+  "idler_x_m": -2.295412045585762,
+  "track_constraint_note": "Idler location is solved to close the 96 x 130mm chain. It is not independently survey-verified."
+}
