@@ -1,0 +1,50 @@
+(()=>{'use strict';
+const $=id=>document.getElementById(id),stage=$('stage'),canvas=document.createElement('canvas');stage.appendChild(canvas);
+const gl=canvas.getContext('webgl2',{antialias:true,preserveDrawingBuffer:true});
+if(!gl){$('loading').textContent='WebGL 2를 지원하는 Chrome, Edge 또는 Firefox로 열어주세요.';return;}
+const vs=`#version 300 es
+precision highp float;layout(location=0)in vec3 position;layout(location=1)in vec3 normal;uniform mat4 vp;out vec3 N;out vec3 P;void main(){N=normal;P=position;gl_Position=vp*vec4(position,1.);}`;
+const fs=`#version 300 es
+precision highp float;in vec3 N;in vec3 P;uniform vec3 color;uniform bool ground;uniform bool wire;out vec4 frag;void main(){if(ground){vec2 q=P.xz*2.;vec2 d=abs(fract(q-.5)-.5)/max(fwidth(q),vec2(.001));float line=1.-min(min(d.x,d.y),1.);float fade=1.-smoothstep(6.,17.,length(P.xz));frag=vec4(mix(vec3(.025,.035,.045),vec3(.09,.12,.14),line*fade),1.);return;}vec3 n=normalize(N);if(!gl_FrontFacing)n=-n;float key=max(dot(n,normalize(vec3(4.,8.,6.))),0.);float fill=max(dot(n,normalize(vec3(-5.,4.,-5.))),0.);float hemi=.35+.20*max(n.y,0.);vec3 lit=color*(hemi+key*.95+fill*.5);if(wire)lit=vec3(.58,.71,.66);lit=lit/(lit+vec3(.4));frag=vec4(pow(lit,vec3(1./2.2)),1.);}`;
+function shader(type,src){let s=gl.createShader(type);gl.shaderSource(s,src);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw Error(gl.getShaderInfoLog(s));return s;}
+const program=gl.createProgram();gl.attachShader(program,shader(gl.VERTEX_SHADER,vs));gl.attachShader(program,shader(gl.FRAGMENT_SHADER,fs));gl.linkProgram(program);if(!gl.getProgramParameter(program,gl.LINK_STATUS))throw Error(gl.getProgramInfoLog(program));gl.useProgram(program);
+const uniforms=Object.fromEntries(['vp','color','ground','wire'].map(k=>[k,gl.getUniformLocation(program,k)]));
+
+const meta=JSON.parse($('geometry-meta').textContent),raw=Uint8Array.from(atob($('geometry-data').textContent.trim()),c=>c.charCodeAt(0)).buffer;
+function gpu(positions,normals,indices,color){const vao=gl.createVertexArray();gl.bindVertexArray(vao);
+ for(const [i,arr]of [[0,positions],[1,normals]]){gl.bindBuffer(gl.ARRAY_BUFFER,gl.createBuffer());gl.bufferData(gl.ARRAY_BUFFER,arr,gl.STATIC_DRAW);gl.enableVertexAttribArray(i);gl.vertexAttribPointer(i,3,gl.FLOAT,false,0,0);}
+ const ib=gl.createBuffer();gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,ib);gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,indices,gl.STATIC_DRAW);
+ return{vao,ib,indices,count:indices.length,color,lineBuffer:null};}
+const parts=meta.map(m=>gpu(new Float32Array(raw,m.p,m.vertices*3),new Float32Array(raw,m.n,m.vertices*3),new Uint32Array(raw,m.i,m.indices),m.color));
+const floor=gpu(new Float32Array([-30,-.055,-30,30,-.055,-30,30,-.055,30,-30,-.055,30]),new Float32Array([0,1,0,0,1,0,0,1,0,0,1,0]),new Uint32Array([0,2,1,0,3,2]),[.1,.1,.1]);
+let theta=.9,phi=1.1,radius=16,target=[.6,1.25,0],rotating=false,wire=false,grid=true,orthographic=false,dirty=true;
+function subtract(a,b){return a.map((x,i)=>x-b[i]);}function normalize(a){let l=Math.hypot(...a);return a.map(x=>x/l);}function cross(a,b){return[a[1]*b[2]-a[2]*b[1],a[2]*b[0]-a[0]*b[2],a[0]*b[1]-a[1]*b[0]];}function dot(a,b){return a.reduce((v,x,i)=>v+x*b[i],0);}
+function multiply(a,b){const r=new Float32Array(16);for(let c=0;c<4;c++)for(let i=0;i<4;i++)for(let k=0;k<4;k++)r[c*4+i]+=a[k*4+i]*b[c*4+k];return r;}
+function camera(){const eye=[target[0]+radius*Math.sin(phi)*Math.cos(theta),target[1]+radius*Math.cos(phi),target[2]+radius*Math.sin(phi)*Math.sin(theta)];const z=normalize(subtract(eye,target)),x=normalize(cross([0,1,0],z)),y=cross(z,x);const view=new Float32Array([x[0],y[0],z[0],0,x[1],y[1],z[1],0,x[2],y[2],z[2],0,-dot(x,eye),-dot(y,eye),-dot(z,eye),1]);const f=1/Math.tan(35*Math.PI/360),a=canvas.width/canvas.height,n=.05,far=200;const height=Math.max(5.5,10.5/a)*radius/16,width=height*a;const projection=orthographic?new Float32Array([2/width,0,0,0,0,2/height,0,0,0,0,-2/(far-n),0,0,0,-(far+n)/(far-n),1]):new Float32Array([f/a,0,0,0,0,f,0,0,0,0,(far+n)/(n-far),-1,0,0,2*far*n/(n-far),0]);return multiply(projection,view);}
+function drawPart(p,isFloor=false){gl.bindVertexArray(p.vao);gl.uniform3fv(uniforms.color,p.color);gl.uniform1i(uniforms.ground,isFloor);gl.uniform1i(uniforms.wire,wire&&!isFloor);
+ if(wire&&!isFloor){if(!p.lineBuffer){const ix=p.indices,lines=new Uint32Array(ix.length*2);for(let i=0,j=0;i<ix.length;i+=3){lines[j++]=ix[i];lines[j++]=ix[i+1];lines[j++]=ix[i+1];lines[j++]=ix[i+2];lines[j++]=ix[i+2];lines[j++]=ix[i];}p.lineBuffer=gl.createBuffer();gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,p.lineBuffer);gl.bufferData(gl.ELEMENT_ARRAY_BUFFER,lines,gl.STATIC_DRAW);}else gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,p.lineBuffer);gl.drawElements(gl.LINES,p.count*2,gl.UNSIGNED_INT,0);}
+ else{gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER,p.ib);gl.drawElements(gl.TRIANGLES,p.count,gl.UNSIGNED_INT,0);}}
+function render(){gl.viewport(0,0,canvas.width,canvas.height);gl.clearColor(.018,.027,.036,1);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);gl.enable(gl.DEPTH_TEST);gl.uniformMatrix4fv(uniforms.vp,false,camera());if(grid)drawPart(floor,true);for(const p of parts)drawPart(p);dirty=false;}
+function resize(){const d=Math.min(devicePixelRatio||1,2);canvas.width=Math.round(stage.clientWidth*d);canvas.height=Math.round(stage.clientHeight*d);canvas.style.width='100%';canvas.style.height='100%';dirty=true;}new ResizeObserver(resize).observe(stage);resize();
+const presets={hero:[.9,1.1,16],front:[0,Math.PI/2,16],side:[Math.PI/2,Math.PI/2,16],rear:[Math.PI,Math.PI/2,16],top:[Math.PI/2,.01,17]};
+for(const b of document.querySelectorAll('[data-view]'))b.onclick=()=>{[theta,phi,radius]=presets[b.dataset.view];orthographic=b.dataset.view!=='hero';toggle('projection',orthographic);target=[.6,1.25,0];dirty=true;document.querySelectorAll('[data-view]').forEach(x=>x.classList.toggle('active',x===b));};
+function toggle(id,value){$(id).setAttribute('aria-pressed',String(value));$(id).classList.toggle('active',value);dirty=true;}
+$('projection').onclick=()=>{orthographic=!orthographic;toggle('projection',orthographic);};
+$('dimensions').onclick=()=>{const panel=$('dimension-panel');panel.hidden=!panel.hidden;toggle('dimensions',!panel.hidden);};
+$('close-dimensions').onclick=()=>{ $('dimension-panel').hidden=true;toggle('dimensions',false);};
+$('rotate').onclick=()=>{rotating=!rotating;toggle('rotate',rotating);};$('wire').onclick=()=>{wire=!wire;toggle('wire',wire);};$('grid').onclick=()=>{grid=!grid;toggle('grid',grid);};
+function zoom(factor){radius=Math.max(3,Math.min(35,radius*factor));dirty=true;}
+canvas.addEventListener('wheel',e=>{e.preventDefault();zoom(Math.exp(e.deltaY*.001));},{passive:false});canvas.addEventListener('contextmenu',e=>e.preventDefault());
+const pointers=new Map();let distance=0;
+canvas.addEventListener('pointerdown',e=>{canvas.setPointerCapture(e.pointerId);pointers.set(e.pointerId,[e.clientX,e.clientY]);if(pointers.size===2){const a=[...pointers.values()];distance=Math.hypot(a[0][0]-a[1][0],a[0][1]-a[1][1]);}});
+canvas.addEventListener('pointermove',e=>{const old=pointers.get(e.pointerId);if(!old)return;const dx=e.clientX-old[0],dy=e.clientY-old[1];pointers.set(e.pointerId,[e.clientX,e.clientY]);if(pointers.size===2){const a=[...pointers.values()],d=Math.hypot(a[0][0]-a[1][0],a[0][1]-a[1][1]);if(d>1&&distance>1)zoom(distance/d);distance=d;}else if(e.buttons===2||e.shiftKey){const k=radius*.0015;target[0]+=Math.sin(theta)*dx*k;target[2]-=Math.cos(theta)*dx*k;target[1]+=dy*k;}else{theta-=dx*.006;phi=Math.max(.01,Math.min(1.56,phi+dy*.006));}dirty=true;});
+for(const event of ['pointerup','pointercancel','lostpointercapture'])canvas.addEventListener(event,e=>pointers.delete(e.pointerId));
+function save(blob,name){const u=URL.createObjectURL(blob),a=document.createElement('a');a.href=u;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(u),10000);}
+$('download').onclick=()=>{
+ const doc={asset:{version:'2.0',generator:'Tiger I offline viewer'},scene:0,scenes:[{nodes:meta.map((_,i)=>i)}],nodes:meta.map((_,i)=>({mesh:i})),meshes:[],materials:[],buffers:[{byteLength:raw.byteLength}],bufferViews:[],accessors:[]};
+ meta.forEach((m,i)=>{const a=i*3;doc.materials.push({doubleSided:true,pbrMetallicRoughness:{baseColorFactor:[...m.color,1],metallicFactor:.45,roughnessFactor:.6}});doc.meshes.push({primitives:[{attributes:{POSITION:a,NORMAL:a+1},indices:a+2,material:i}]});doc.bufferViews.push({buffer:0,byteOffset:m.p,byteLength:m.vertices*12},{buffer:0,byteOffset:m.n,byteLength:m.vertices*12},{buffer:0,byteOffset:m.i,byteLength:m.indices*4});doc.accessors.push({bufferView:a,componentType:5126,count:m.vertices,type:'VEC3',min:m.min,max:m.max},{bufferView:a+1,componentType:5126,count:m.vertices,type:'VEC3'},{bufferView:a+2,componentType:5125,count:m.indices,type:'SCALAR'});});
+ const json=new TextEncoder().encode(JSON.stringify(doc)),len=(json.length+3)&~3,chunk=new Uint8Array(len);chunk.fill(32);chunk.set(json);const h=new ArrayBuffer(20),dv=new DataView(h);dv.setUint32(0,0x46546c67,true);dv.setUint32(4,2,true);dv.setUint32(8,28+len+raw.byteLength,true);dv.setUint32(12,len,true);dv.setUint32(16,0x4e4f534a,true);const bh=new ArrayBuffer(8),bd=new DataView(bh);bd.setUint32(0,raw.byteLength,true);bd.setUint32(4,0x004e4942,true);save(new Blob([h,chunk,bh,raw],{type:'model/gltf-binary'}),'Tiger_I_Early.glb');
+};$('capture').onclick=()=>{render();canvas.toBlob(b=>b&&save(b,'Tiger_I_view.png'));};
+window.addEventListener('keydown',e=>{if(e.key.toLowerCase()==='r')$('rotate').click();if(e.key.toLowerCase()==='w')$('wire').click();});canvas.addEventListener('webglcontextlost',e=>{e.preventDefault();$('loading').hidden=false;$('loading').textContent='그래픽 연결이 중단됐습니다. 페이지를 새로고침해 주세요.';});
+$('loading').hidden=true;$('status').textContent='수정 2 · 정면·측면·후면은 정투영으로 표시됩니다';let previous=0;function frame(t){if(rotating){theta+=Math.min(t-previous,50)*.00015;dirty=true;}previous=t;if(dirty)render();requestAnimationFrame(frame);}requestAnimationFrame(frame);
+})();
